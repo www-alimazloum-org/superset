@@ -40,6 +40,30 @@ export type SSHTunnelObject = {
   private_key_password?: string;
 };
 
+export type DatabaseParameters = {
+  access_token?: string;
+  database_name?: string;
+  host?: string;
+  port?: number;
+  database?: string;
+  default_catalog?: string;
+  default_schema?: string;
+  http_path_field?: string;
+  username?: string;
+  password?: string;
+  encryption?: boolean;
+  credentials_info?: string;
+  service_account_info?: string;
+  query?: Record<string, string>;
+  catalog?: Record<string, string | undefined>;
+  properties?: Record<string, any>;
+  warehouse?: string;
+  role?: string;
+  account?: string;
+  ssh?: boolean;
+  project_id?: string;
+};
+
 export type DatabaseObject = {
   // Connection + general
   backend?: string;
@@ -57,25 +81,7 @@ export type DatabaseObject = {
   paramProperties?: Record<string, any>;
   sqlalchemy_uri?: string;
   sqlalchemy_uri_placeholder?: string;
-  parameters?: {
-    access_token?: string;
-    database_name?: string;
-    host?: string;
-    port?: number;
-    database?: string;
-    username?: string;
-    password?: string;
-    encryption?: boolean;
-    credentials_info?: string;
-    service_account_info?: string;
-    query?: Record<string, string>;
-    catalog?: Record<string, string | undefined>;
-    properties?: Record<string, any>;
-    warehouse?: string;
-    role?: string;
-    account?: string;
-    ssh?: boolean;
-  };
+  parameters?: DatabaseParameters;
 
   // Performance
   cache_timeout?: string;
@@ -109,6 +115,8 @@ export type DatabaseObject = {
   engine_information?: {
     supports_file_upload?: boolean;
     disable_ssh_tunneling?: boolean;
+    supports_dynamic_catalog?: boolean;
+    supports_oauth2?: boolean;
   };
 
   // SSH Tunnel information
@@ -122,6 +130,18 @@ export type DatabaseForm = {
   parameters: {
     properties: {
       database: {
+        description: string;
+        type: string;
+      };
+      default_catalog: {
+        description: string;
+        type: string;
+      };
+      default_schema: {
+        description: string;
+        type: string;
+      };
+      http_path_field: {
         description: string;
         type: string;
       };
@@ -202,6 +222,7 @@ export type DatabaseForm = {
   engine_information: {
     supports_file_upload: boolean;
     disable_ssh_tunneling: boolean;
+    supports_dynamic_catalog: boolean;
   };
 };
 
@@ -214,6 +235,7 @@ export enum ConfigurationMethod {
 
 export enum Engines {
   GSheet = 'gsheets',
+  BigQuery = 'bigquery',
   Snowflake = 'snowflake',
 }
 
@@ -222,6 +244,8 @@ export interface ExtraJson {
   cancel_query_on_windows_unload?: boolean; // in Performance
   cost_estimate_enabled?: boolean; // in SQL Lab
   disable_data_preview?: boolean; // in SQL Lab
+  disable_drill_to_detail?: boolean;
+  allow_multi_catalog?: boolean;
   engine_params?: {
     catalog?: Record<string, string>;
     connect_args?: {
@@ -282,6 +306,7 @@ export interface FieldPropTypes {
     onRemoveTableCatalog: (idx: number) => void;
   } & {
     onExtraInputChange: (value: any) => void;
+    onEncryptedExtraInputChange: (value: any) => void;
     onSSHTunnelParametersChange: CustomEventHandlerType;
   };
   validationErrors: JsonObject | null;
@@ -290,6 +315,8 @@ export interface FieldPropTypes {
   db?: DatabaseObject;
   dbModel?: DatabaseForm;
   field: string;
+  default_value?: any;
+  description?: string;
   isEditMode?: boolean;
   sslForced?: boolean;
   defaultDBName?: string;
@@ -309,3 +336,35 @@ export type SwitchProps = {
   changeMethods: SwitchPropsChangeMethodsType;
   clearValidationErrors: () => void;
 };
+
+export interface DatabaseConnectionFormProps {
+  isEditMode?: boolean;
+  sslForced: boolean;
+  editNewDb?: boolean;
+  dbModel: DatabaseForm;
+  db: Partial<DatabaseObject> | null;
+  onParametersChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onQueryChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onParametersUploadFileChange?: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onExtraInputChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onEncryptedExtraInputChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onAddTableCatalog: () => void;
+  onRemoveTableCatalog: (idx: number) => void;
+  validationErrors: JsonObject | null;
+  getValidation: () => void;
+  clearValidationErrors: () => void;
+  getPlaceholder?: (field: string) => string | undefined;
+}

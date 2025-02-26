@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import SSHTunnelSwitch from './SSHTunnelSwitch';
 import { DatabaseForm, DatabaseObject } from '../types';
 
@@ -27,8 +25,8 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn().mockReturnValue(true),
 }));
 
-jest.mock('src/components', () => ({
-  AntdSwitch: ({
+jest.mock('src/components/Switch', () => ({
+  Switch: ({
     checked,
     onChange,
   }: {
@@ -96,6 +94,7 @@ test('Does not render if SSH Tunnel is disabled', () => {
         engine_information: {
           disable_ssh_tunneling: true,
           supports_file_upload: false,
+          supports_dynamic_catalog: false,
         },
       }}
     />,

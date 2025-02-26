@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -45,7 +45,7 @@ const AddButtonContainer = styled.div`
       padding-bottom: 1px;
     }
 
-    .ant-btn > .anticon + span {
+    .antd5-btn > .anticon + span {
       margin-left: 0;
     }
   `}
@@ -140,6 +140,7 @@ export const ChartsScopingListPanel = ({
         </Button>
       </AddButtonContainer>
       <FilterTitle
+        role="button"
         onClick={() => setCurrentChartId(undefined)}
         className={activeChartId === undefined ? 'active' : ''}
       >

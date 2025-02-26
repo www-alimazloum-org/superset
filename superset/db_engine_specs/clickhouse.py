@@ -219,6 +219,10 @@ class ClickHouseParametersSchema(Schema):
         values=fields.Raw(),
         metadata={"description": __("Additional parameters")},
     )
+    ssh = fields.Boolean(
+        required=False,
+        metadata={"description": __("Use an ssh tunnel connection to the database")},
+    )
 
 
 try:
@@ -278,14 +282,14 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
 
     @classmethod
     def get_function_names(cls, database: Database) -> list[str]:
-        # pylint: disable=import-outside-toplevel,import-error
+        # pylint: disable=import-outside-toplevel, import-error
         from clickhouse_connect.driver.exceptions import ClickHouseError
 
         if cls._function_names:
             return cls._function_names
         try:
             names = database.get_df(
-                "SELECT name FROM system.functions UNION ALL "
+                "SELECT name FROM system.functions UNION ALL "  # noqa: S608
                 + "SELECT name FROM system.table_functions LIMIT 10000"
             )["name"].tolist()
             cls._function_names = names
@@ -312,8 +316,18 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             url_params["query"] = query
         if not url_params.get("database"):
             url_params["database"] = "__default__"
-        url_params.pop("encryption", None)
-        return str(URL.create(f"{cls.engine}+{cls.default_driver}", **url_params))
+
+        return str(
+            URL.create(
+                f"{cls.engine}+{cls.default_driver}",
+                username=url_params.get("username"),
+                password=url_params.get("password"),
+                host=url_params.get("host"),
+                port=url_params.get("port"),
+                database=url_params.get("database"),
+                query=url_params.get("query"),
+            )
+        )
 
     @classmethod
     def get_parameters_from_uri(
@@ -340,7 +354,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     def validate_parameters(
         cls, properties: BasicPropertiesType
     ) -> list[SupersetError]:
-        # pylint: disable=import-outside-toplevel,import-error
+        # pylint: disable=import-outside-toplevel, import-error
         from clickhouse_connect.driver import default_port
 
         parameters = properties.get("parameters", {})

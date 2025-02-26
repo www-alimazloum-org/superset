@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AppSection,
   DataMask,
@@ -189,7 +189,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleBlur = useCallback(() => {
     unsetFocusedFilter();
-  }, [unsetFocusedFilter]);
+    onSearch('');
+  }, [onSearch, unsetFocusedFilter]);
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
@@ -292,8 +293,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         extra={formItemExtra}
       >
         <Select
+          name={formData.nativeFilterId}
           allowClear
-          allowNewOptions
+          allowNewOptions={!searchAllOptions}
           allowSelectAll={!searchAllOptions}
           // @ts-ignore
           value={filterState.value || []}
@@ -307,6 +309,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}
           placeholder={placeholderText}
+          onClear={() => onSearch('')}
           onSearch={onSearch}
           onBlur={handleBlur}
           onFocus={setFocusedFilter}

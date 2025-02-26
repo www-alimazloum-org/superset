@@ -1,6 +1,5 @@
 ---
-title: Security
-hide_title: true
+title: Security Configurations
 sidebar_position: 1
 ---
 
@@ -116,7 +115,7 @@ the models and views they can access, and that Finance role that is a collection
 A user can have multiple roles associated with them. For example, an executive on the Finance
 team could be granted **Gamma**, **Finance**, and the **Executive** roles. The **Executive**
 role could provide access to a set of data sources and dashboards made available only to executives.
-In the **Dashboards** view, a user can only see the ones they have access too
+In the **Dashboards** view, a user can only see the ones they have access to
 based on the roles and permissions that were attributed.
 
 ### Row Level Security
@@ -253,6 +252,9 @@ You can get current nonce value by calling jinja macro `csp_nonce()`.
   worker-src 'self' blob:
   connect-src 'self' https://api.mapbox.com https://events.mapbox.com
   ```
+
+- Cartodiagram charts request map data (image and json) from external resources that can be edited by users,
+and therefore either require a list of allowed domains to request from or a wildcard (`'*'`) for `img-src` and `connect-src`.
 
 * Other CSP directives default to `'self'` to limit content to the same origin as the Superset server.
 

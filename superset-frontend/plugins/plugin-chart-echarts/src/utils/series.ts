@@ -33,9 +33,11 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SortSeriesType } from '@superset-ui/chart-controls';
-import { format, LegendComponentOption, SeriesOption } from 'echarts';
-import { maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
+import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
+import { format } from 'echarts/core';
+import type { LegendComponentOption } from 'echarts/components';
+import type { SeriesOption } from 'echarts';
+import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
 import {
   NULL_STRING,
   StackControlsValue,
@@ -423,6 +425,7 @@ export function getLegendProps(
   theme: SupersetTheme,
   zoomable = false,
   legendState?: LegendState,
+  padding?: LegendPaddingType,
 ): LegendComponentOption | LegendComponentOption[] {
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
@@ -441,13 +444,30 @@ export function getLegendProps(
       borderColor: theme.colors.grayscale.base,
     },
   };
+  const MIN_LEGEND_WIDTH = 0;
+  const MARGIN_GUTTER = 45;
+  const getLegendWidth = (paddingWidth: number) =>
+    Math.max(paddingWidth - MARGIN_GUTTER, MIN_LEGEND_WIDTH);
+
   switch (orientation) {
     case LegendOrientation.Left:
       legend.left = 0;
+      if (padding?.left) {
+        legend.textStyle = {
+          overflow: 'truncate',
+          width: getLegendWidth(padding.left),
+        };
+      }
       break;
     case LegendOrientation.Right:
       legend.right = 0;
       legend.top = zoomable ? TIMESERIES_CONSTANTS.legendRightTopOffset : 0;
+      if (padding?.right) {
+        legend.textStyle = {
+          overflow: 'truncate',
+          width: getLegendWidth(padding.right),
+        };
+      }
       break;
     case LegendOrientation.Bottom:
       legend.bottom = 0;
@@ -465,7 +485,7 @@ export function getChartPadding(
   show: boolean,
   orientation: LegendOrientation,
   margin?: string | number | null,
-  padding?: { top?: number; bottom?: number; left?: number; right?: number },
+  padding?: LegendPaddingType,
   isHorizontal?: boolean,
 ): {
   bottom: number;
@@ -603,4 +623,59 @@ export function getMinAndMaxFromBounds(
     return ret;
   }
   return {};
+}
+
+/**
+ * Returns the stackId used in stacked series.
+ * It will return the defaultId if the chart is not using time comparison.
+ * If time comparison is used, it will return the time comparison value as the stackId
+ * if the name includes the time comparison value.
+ *
+ * @param {string} defaultId The default stackId.
+ * @param {string[]} timeCompare The time comparison values.
+ * @param {string | number} name The name of the serie.
+ *
+ * @returns {string} The stackId.
+ */
+export function getTimeCompareStackId(
+  defaultId: string,
+  timeCompare: string[],
+  name?: string | number,
+): string {
+  if (isEmpty(timeCompare)) {
+    return defaultId;
+  }
+  // Each timeCompare is its own stack so it doesn't stack on top of original ones
+  return (
+    timeCompare.find(value => {
+      if (typeof name === 'string') {
+        // offset is represented as <offset>, group by list
+        return (
+          name.includes(`${value},`) ||
+          // offset is represented as <metric>__<offset>
+          name.includes(`__${value}`)
+        );
+      }
+      return name?.toString().includes(value);
+    }) || defaultId
+  );
+}
+
+const TOOLTIP_SERIES_KEY = 'seriesId';
+export function extractTooltipKeys(
+  forecastValue: any[],
+  yIndex: number,
+  richTooltip?: boolean,
+  tooltipSortByMetric?: boolean,
+): string[] {
+  if (richTooltip && tooltipSortByMetric) {
+    return forecastValue
+      .slice()
+      .sort((a, b) => b.data[yIndex] - a.data[yIndex])
+      .map(value => value[TOOLTIP_SERIES_KEY]);
+  }
+  if (richTooltip) {
+    return forecastValue.map(s => s[TOOLTIP_SERIES_KEY]);
+  }
+  return [forecastValue[0][TOOLTIP_SERIES_KEY]];
 }

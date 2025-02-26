@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { PureComponent, ReactNode } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
 import {
@@ -27,10 +27,11 @@ import {
   t,
 } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { URL_PARAMS } from 'src/constants';
+import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
-import { AsyncSelect, Steps } from 'src/components';
+import { AsyncSelect } from 'src/components';
+import { Steps } from 'src/components/Steps';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
@@ -60,7 +61,9 @@ const ESTIMATED_NAV_HEIGHT = 56;
 const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
 
 const bootstrapData = getBootstrapData();
-const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
+const denyList: string[] = (
+  bootstrapData.common.conf.VIZ_TYPE_DENYLIST || []
+).concat(Object.values(FilterPlugins));
 
 const StyledContainer = styled.div`
   ${({ theme }) => `
@@ -87,6 +90,7 @@ const StyledContainer = styled.div`
       display: flex;
       flex-direction: row;
       align-items: center;
+      margin-bottom: ${theme.gridUnit * 5}px;
 
       & > div {
         min-width: 200px;
@@ -122,30 +126,31 @@ const StyledContainer = styled.div`
 
     /* The following extra ampersands (&&&&) are used to boost selector specificity */
 
-    &&&& .ant-steps-item-tail {
+    &&&& .antd5-steps-item-tail {
       display: none;
     }
 
-    &&&& .ant-steps-item-icon {
+    &&&& .antd5-steps-item-icon {
       margin-right: ${theme.gridUnit * 2}px;
       width: ${theme.gridUnit * 5}px;
       height: ${theme.gridUnit * 5}px;
       line-height: ${theme.gridUnit * 5}px;
     }
 
-    &&&& .ant-steps-item-title {
+    &&&& .antd5-steps-item-title {
       line-height: ${theme.gridUnit * 5}px;
     }
 
-    &&&& .ant-steps-item-content {
+    &&&& .antd5-steps-item-content {
       overflow: unset;
 
-      .ant-steps-item-description {
+      .antd5-steps-item-description {
         margin-top: ${theme.gridUnit}px;
+        padding-bottom: ${theme.gridUnit}px;
       }
     }
 
-    &&&& .ant-tooltip-open {
+    &&&& .antd5-tooltip-open {
       display: inline;
     }
 
@@ -181,7 +186,7 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
-export class ChartCreation extends React.PureComponent<
+export class ChartCreation extends PureComponent<
   ChartCreationProps,
   ChartCreationState
 > {
