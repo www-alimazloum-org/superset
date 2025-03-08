@@ -75,7 +75,7 @@ def load_metadata(contents: dict[str, str]) -> dict[str, str]:
 
         # otherwise we raise the validation error
         ex.messages = {METADATA_FILE_NAME: ex.messages}
-        raise ex
+        raise
 
     return metadata
 
@@ -96,7 +96,7 @@ def validate_metadata_type(
 
 
 # pylint: disable=too-many-locals,too-many-arguments
-def load_configs(
+def load_configs(  # noqa: C901
     contents: dict[str, str],
     schemas: dict[str, Schema],
     passwords: dict[str, str],
@@ -173,16 +173,16 @@ def load_configs(
 
                 # populate ssh_tunnel_passwords from the request or from existing DBs
                 if file_name in ssh_tunnel_priv_key_passwords:
-                    config["ssh_tunnel"][
-                        "private_key_password"
-                    ] = ssh_tunnel_priv_key_passwords[file_name]
+                    config["ssh_tunnel"]["private_key_password"] = (
+                        ssh_tunnel_priv_key_passwords[file_name]
+                    )
                 elif (
                     prefix == "databases"
                     and config["uuid"] in db_ssh_tunnel_priv_key_passws
                 ):
-                    config["ssh_tunnel"][
-                        "private_key_password"
-                    ] = db_ssh_tunnel_priv_key_passws[config["uuid"]]
+                    config["ssh_tunnel"]["private_key_password"] = (
+                        db_ssh_tunnel_priv_key_passws[config["uuid"]]
+                    )
 
                 schema.load(config)
                 configs[file_name] = config

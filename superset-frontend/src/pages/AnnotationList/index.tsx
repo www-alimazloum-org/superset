@@ -17,10 +17,16 @@
  * under the License.
  */
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useHistory } from 'react-router-dom';
-import { css, t, styled, SupersetClient } from '@superset-ui/core';
-import moment from 'moment';
+import {
+  css,
+  t,
+  styled,
+  SupersetClient,
+  getClientErrorObject,
+} from '@superset-ui/core';
+import dayjs from 'dayjs';
 import rison from 'rison';
 
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
@@ -28,7 +34,6 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
@@ -165,7 +170,9 @@ function AnnotationList({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('ll'),
+        }: {
+          row: { original: AnnotationObject };
+        }) => dayjs(new Date(startDttm)).format('ll'),
         Header: t('Start'),
         accessor: 'start_dttm',
       },
@@ -174,12 +181,18 @@ function AnnotationList({
           row: {
             original: { end_dttm: endDttm },
           },
-        }: any) => moment(new Date(endDttm)).format('ll'),
+        }: {
+          row: { original: AnnotationObject };
+        }) => dayjs(new Date(endDttm)).format('ll'),
         Header: t('End'),
         accessor: 'end_dttm',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({
+          row: { original },
+        }: {
+          row: { original: AnnotationObject };
+        }) => {
           const handleEdit = () => handleAnnotationEdit(original);
           const handleDelete = () => setAnnotationCurrentlyDeleting(original);
           const actions = [

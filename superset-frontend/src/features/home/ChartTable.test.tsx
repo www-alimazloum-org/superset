@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import {
   render,
   screen,
+  userEvent,
   waitFor,
-  fireEvent,
 } from 'spec/helpers/testing-library';
+import { VizType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 import ChartTable from './ChartTable';
@@ -37,7 +37,7 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   id: i,
   slice_name: `cool chart ${i}`,
   url: 'url',
-  viz_type: 'bar',
+  viz_type: VizType.Bar,
   datasource_title: `ds${i}`,
   thumbnail_url: '',
 }));
@@ -91,14 +91,12 @@ const renderChartTable = (props: any) =>
 test('renders with EmptyState if no data present', async () => {
   await renderChartTable(mockedProps);
   expect(screen.getAllByRole('tab')).toHaveLength(3);
-  expect(
-    screen.getByText(/other charts will appear here/i),
-  ).toBeInTheDocument();
+  expect(screen.getByText(/nothing here yet/i)).toBeInTheDocument();
 });
 
 test('fetches chart favorites and renders chart cards', async () => {
   await renderChartTable(mockedProps);
-  fireEvent.click(screen.getByText(/favorite/i));
+  userEvent.click(screen.getByText(/favorite/i));
   await waitFor(() => {
     expect(fetchMock.calls(chartFavoriteStatusEndpoint)).toHaveLength(1);
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
@@ -112,7 +110,7 @@ test('renders other tab by default', async () => {
 
 test('renders mine tab on click', async () => {
   await renderChartTable(mineTabProps);
-  fireEvent.click(screen.getByText(/mine/i));
+  userEvent.click(screen.getByText(/mine/i));
   await waitFor(() => {
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
   });

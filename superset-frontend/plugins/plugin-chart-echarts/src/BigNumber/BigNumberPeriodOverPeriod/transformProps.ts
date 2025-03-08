@@ -16,20 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import moment from 'moment';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import {
   ChartProps,
   getMetricLabel,
   getValueFormatter,
-  NumberFormats,
   getNumberFormatter,
-  formatTimeRange,
+  SimpleAdhocFilter,
+  ensureIsArray,
 } from '@superset-ui/core';
 import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
+dayjs.extend(utc);
+
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
-    const dateObject = moment.utc(metricValue, moment.ISO_8601, true);
+    const dateObject = dayjs.utc(metricValue, undefined, true);
     if (dateObject.isValid()) {
       return dateObject.valueOf();
     }
@@ -83,20 +86,55 @@ export default function transformProps(chartProps: ChartProps) {
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
+    comparisonColorScheme,
     comparisonColorEnabled,
+    percentDifferenceFormat,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
-  const {
-    data: dataB = [],
-    from_dttm: comparisonFromDatetime,
-    to_dttm: comparisonToDatetime,
-  } = queriesData[1];
   const data = dataA;
-  const metricName = getMetricLabel(metric);
+  const metricName = metric ? getMetricLabel(metric) : '';
+  const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
+  const startDateOffset = chartProps.rawFormData?.start_date_offset;
+  const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
+    (adhoc_filter: SimpleAdhocFilter) =>
+      adhoc_filter.operator === 'TEMPORAL_RANGE',
+  )?.[0];
+
+  const isCustomOrInherit =
+    timeComparison === 'custom' || timeComparison === 'inherit';
+  let dataOffset: string[] = [];
+  if (isCustomOrInherit) {
+    if (timeComparison && timeComparison === 'custom') {
+      dataOffset = [startDateOffset];
+    } else {
+      dataOffset = ensureIsArray(timeComparison) || [];
+    }
+  }
+
+  const { value1, value2 } = data.reduce(
+    (acc: { value1: number; value2: number }, curr: { [x: string]: any }) => {
+      Object.keys(curr).forEach(key => {
+        if (
+          key.includes(
+            `${metricName}__${
+              !isCustomOrInherit ? timeComparison : dataOffset[0]
+            }`,
+          )
+        ) {
+          acc.value2 += curr[key];
+        } else if (key.includes(metricName)) {
+          acc.value1 += curr[key];
+        }
+      });
+      return acc;
+    },
+    { value1: 0, value2: 0 },
+  );
+
   let bigNumber: number | string =
-    data.length === 0 ? 0 : parseMetricValue(data[0][metricName]);
+    data.length === 0 ? 0 : parseMetricValue(value1);
   let prevNumber: number | string =
-    data.length === 0 ? 0 : parseMetricValue(dataB[0][metricName]);
+    data.length === 0 ? 0 : parseMetricValue(value2);
 
   const numberFormatter = getValueFormatter(
     metric,
@@ -113,9 +151,7 @@ export default function transformProps(chartProps: ChartProps) {
     w: 'Week' as string,
   };
 
-  const formatPercentChange = getNumberFormatter(
-    NumberFormats.PERCENT_SIGNED_1_POINT,
-  );
+  const formatPercentChange = getNumberFormatter(percentDifferenceFormat);
 
   let valueDifference: number | string = bigNumber - prevNumber;
 
@@ -129,15 +165,12 @@ export default function transformProps(chartProps: ChartProps) {
     percentDifferenceNum = (bigNumber - prevNumber) / Math.abs(prevNumber);
   }
 
-  const compType = compTitles[formData.timeComparison];
+  const compType =
+    compTitles[formData.timeComparison as keyof typeof compTitles];
   bigNumber = numberFormatter(bigNumber);
   prevNumber = numberFormatter(prevNumber);
   valueDifference = numberFormatter(valueDifference);
   const percentDifference: string = formatPercentChange(percentDifferenceNum);
-  const comparatorText = formatTimeRange('%Y-%m-%d', [
-    comparisonFromDatetime,
-    comparisonToDatetime,
-  ]);
 
   return {
     width,
@@ -154,7 +187,11 @@ export default function transformProps(chartProps: ChartProps) {
     headerText,
     compType,
     comparisonColorEnabled,
+    comparisonColorScheme,
     percentDifferenceNumber: percentDifferenceNum,
-    comparatorText,
+    currentTimeRangeFilter,
+    startDateOffset,
+    shift: timeComparison,
+    dashboardTimeRange: formData?.extraFormData?.time_range,
   };
 }

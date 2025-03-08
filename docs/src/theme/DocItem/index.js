@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import styled from '@emotion/styled';
 import DocItem from '@theme-original/DocItem';
 
 const EditPageLink = styled('a')`
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 40px;
+  right: 10px;
   padding: 1rem;
   padding-left: 4rem;
   background-color: #444;
@@ -34,13 +33,14 @@ const EditPageLink = styled('a')`
   background-position: 1rem center;
   background-repeat: no-repeat;
   transition: background-color 0.3s; /* Smooth transition for hover effect */
-  bpx-shadow: 0 0 0 0 rgba(0,0,0,0); /* Smooth transition for hover effect */
-  scale: .9;
+  bpx-shadow: 0 0 0 0 rgba(0, 0, 0, 0); /* Smooth transition for hover effect */
+  scale: 0.9;
   transition: all 0.3s;
+  transform-origin: bottom right;
 
   &:hover {
     background-color: #333;
-    box-shadow: 5px 5px 10px 0 rgba(0,0,0,0.3);
+    box-shadow: 5px 5px 10px 0 rgba(0, 0, 0, 0.3);
     scale: 1;
   }
 `;
@@ -48,7 +48,11 @@ const EditPageLink = styled('a')`
 export default function DocItemWrapper(props) {
   return (
     <>
-      <EditPageLink href={props.content.metadata.editUrl} target="_blank" rel="noopener noreferrer">
+      <EditPageLink
+        href={props.content.metadata.editUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         Edit this page on GitHub
       </EditPageLink>
       <DocItem {...props} />

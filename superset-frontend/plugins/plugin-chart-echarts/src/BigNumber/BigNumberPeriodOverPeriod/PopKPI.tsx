@@ -16,10 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import { css, styled, t, useTheme } from '@superset-ui/core';
-import { Tooltip } from '@superset-ui/chart-controls';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  css,
+  ensureIsArray,
+  fetchTimeRange,
+  getTimeOffset,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
+import { DEFAULT_DATE_PATTERN, Tooltip } from '@superset-ui/chart-controls';
+import { isEmpty } from 'lodash';
+import {
+  ColorSchemeEnum,
   PopKPIComparisonSymbolStyleProps,
   PopKPIComparisonValueStyleProps,
   PopKPIProps,
@@ -66,9 +76,50 @@ export default function PopKPI(props: PopKPIProps) {
     headerFontSize,
     subheaderFontSize,
     comparisonColorEnabled,
+    comparisonColorScheme,
     percentDifferenceNumber,
-    comparatorText,
+    currentTimeRangeFilter,
+    startDateOffset,
+    shift,
+    dashboardTimeRange,
   } = props;
+
+  const [comparisonRange, setComparisonRange] = useState<string>('');
+
+  useEffect(() => {
+    if (!currentTimeRangeFilter || (!shift && !startDateOffset)) {
+      setComparisonRange('');
+    } else if (!isEmpty(shift) || startDateOffset) {
+      const promise: any = fetchTimeRange(
+        dashboardTimeRange ?? (currentTimeRangeFilter as any).comparator,
+        currentTimeRangeFilter.subject,
+      );
+      Promise.resolve(promise).then((res: any) => {
+        const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
+        const [parsedStartDate, parsedEndDate] = dates ?? [];
+        const newShift = getTimeOffset({
+          timeRangeFilter: {
+            ...currentTimeRangeFilter,
+            comparator: `${parsedStartDate} : ${parsedEndDate}`,
+          },
+          shifts: ensureIsArray(shift),
+          startDate: startDateOffset || '',
+        });
+        fetchTimeRange(
+          dashboardTimeRange ?? (currentTimeRangeFilter as any).comparator,
+          currentTimeRangeFilter.subject,
+          ensureIsArray(newShift),
+        ).then(res => {
+          const response: string[] = ensureIsArray(res.value);
+          const firstRange: string = response.flat()[0];
+          const rangeText = firstRange.split('vs\n');
+          setComparisonRange(
+            rangeText.length > 1 ? rangeText[1].trim() : rangeText[0],
+          );
+        });
+      });
+    }
+  }, [currentTimeRangeFilter, shift, startDateOffset, dashboardTimeRange]);
 
   const theme = useTheme();
   const flexGap = theme.gridUnit * 5;
@@ -90,8 +141,18 @@ export default function PopKPI(props: PopKPIProps) {
   `;
 
   const getArrowIndicatorColor = () => {
-    if (!comparisonColorEnabled) return theme.colors.grayscale.base;
-    return percentDifferenceNumber > 0
+    if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
+      return theme.colors.grayscale.base;
+    }
+
+    if (percentDifferenceNumber > 0) {
+      // Positive difference
+      return comparisonColorScheme === ColorSchemeEnum.Green
+        ? theme.colors.success.base
+        : theme.colors.error.base;
+    }
+    // Negative difference
+    return comparisonColorScheme === ColorSchemeEnum.Red
       ? theme.colors.success.base
       : theme.colors.error.base;
   };
@@ -106,30 +167,39 @@ export default function PopKPI(props: PopKPIProps) {
   const { backgroundColor, textColor } = useMemo(() => {
     let bgColor = defaultBackgroundColor;
     let txtColor = defaultTextColor;
-    if (percentDifferenceNumber > 0) {
-      if (comparisonColorEnabled) {
-        bgColor = theme.colors.success.light2;
-        txtColor = theme.colors.success.base;
-      }
-    } else if (percentDifferenceNumber < 0) {
-      if (comparisonColorEnabled) {
-        bgColor = theme.colors.error.light2;
-        txtColor = theme.colors.error.base;
-      }
+    if (comparisonColorEnabled && percentDifferenceNumber !== 0) {
+      const useSuccess =
+        (percentDifferenceNumber > 0 &&
+          comparisonColorScheme === ColorSchemeEnum.Green) ||
+        (percentDifferenceNumber < 0 &&
+          comparisonColorScheme === ColorSchemeEnum.Red);
+
+      // Set background and text colors based on the conditions
+      bgColor = useSuccess
+        ? theme.colors.success.light2
+        : theme.colors.error.light2;
+      txtColor = useSuccess
+        ? theme.colors.success.base
+        : theme.colors.error.base;
     }
 
     return {
       backgroundColor: bgColor,
       textColor: txtColor,
     };
-  }, [theme, comparisonColorEnabled, percentDifferenceNumber]);
+  }, [
+    theme,
+    comparisonColorScheme,
+    comparisonColorEnabled,
+    percentDifferenceNumber,
+  ]);
 
   const SYMBOLS_WITH_VALUES = useMemo(
     () => [
       {
         symbol: '#',
         value: prevNumber,
-        tooltipText: t('Data for %s', comparatorText),
+        tooltipText: t('Data for %s', comparisonRange || 'previous range'),
       },
       {
         symbol: '△',
@@ -143,7 +213,7 @@ export default function PopKPI(props: PopKPIProps) {
       },
     ],
     [
-      comparatorText,
+      comparisonRange,
       prevNumber,
       valueDifference,
       percentDifferenceFormattedString,
